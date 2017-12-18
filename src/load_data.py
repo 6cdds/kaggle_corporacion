@@ -3,6 +3,7 @@
 import sqlite3
 import os
 import pandas as pd
+import datetime
 
 DB_NAME = 'kaggle_corporacion_db'
 
@@ -26,3 +27,9 @@ def create_train_db(f_name, db_loc):
         chunk_cnt = chunk_cnt + 1
         print chunk_cnt
     f.close()
+    
+def parse_date(date_str):
+    #dt = datetime.datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
+    dt = datetime.datetime.strptime(date_str, '%Y-%m-%d')
+    
+    return (dt - datetime.datetime(2013,1,1)).total_seconds()
