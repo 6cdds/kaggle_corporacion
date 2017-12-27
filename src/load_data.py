@@ -25,7 +25,7 @@ def create_train_db(f_name, db_loc):
     #        f, parse_dates=['date'],  dtype=types, chunksize=10000000, 
     #        infer_datetime_format=True):
     
-    for chunk in pd.read_csv(dtype=types, chunksize=10000000):
+    for chunk in pd.read_csv(f, dtype=types, chunksize=1000000, low_memory = False):
         
         date_year = []
         date_month = []
