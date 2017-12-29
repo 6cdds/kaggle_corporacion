@@ -74,3 +74,65 @@ def parse_date(date_str):
     dt = datetime.datetime.strptime(date_str, '%Y-%m-%d')
     
     return (dt - datetime.datetime(2013,1,1)).total_seconds()
+
+
+def get_stores(f_name):
+    f = open(f_name, 'r')
+    df = pd.read_csv(f)
+    df.index = list(df['store_nbr'])
+    df.columns = ['store_nbr', 'store_city', 'store_state', 
+                  'store_type', 'store_cluster']
+    return df
+    
+def get_items(f_name):
+    f = open(f_name, 'r')
+    df = pd.read_csv(f)
+    df.index = list(df['item_nbr'])
+    df.columns = ['item_nbr', 'item_family', 'item_class', 'item_perishable']
+    return df
+
+def get_oil(f_name):
+    f = open(f_name, 'r')
+    df = pd.read_csv(f) 
+
+    date_year = []
+    date_month = []
+    date_day = []    
+    for x in df['date']:
+        dt = datetime.datetime.strptime(x, '%Y-%m-%d')
+        date_year.append(dt.year)
+        date_month.append(dt.month)
+        date_day.append(dt.day)
+
+    df['date_year'] = date_year
+    df['date_month'] = date_month
+    df['date_day'] = date_day
+    
+    del df['date']
+    
+    return df
+
+def get_holidays(f_name):
+    f = open(f_name, 'r')
+    df = pd.read_csv(f) 
+
+    date_year = []
+    date_month = []
+    date_day = []    
+    for x in df['date']:
+        dt = datetime.datetime.strptime(x, '%Y-%m-%d')
+        date_year.append(dt.year)
+        date_month.append(dt.month)
+        date_day.append(dt.day)
+
+    df['date_year'] = date_year
+    df['date_month'] = date_month
+    df['date_day'] = date_day
+    
+    df.columns = ['date', 'holiday_type', 'holiday_locale', 
+                  'holiday_locale_name', 'holiday_description',
+                  'holiday_transferred', 'date_year', u'date_month', u'date_day']
+    
+    #del df['date']
+    
+    return df
