@@ -2,6 +2,7 @@
 
 import datetime
 import pandas as pd
+import numpy as np
 
 def get_features(data_df, stores, items, oil, holidays):
     
@@ -10,11 +11,16 @@ def get_features(data_df, stores, items, oil, holidays):
     
     merge_date_cols = ['date_year', 'date_month', 'date_day']
     
-    feats = pd.merge(feats, holidays, 
-                     left_on = merge_date_cols, right_on = merge_date_cols)
-    
-    feats = pd.merge(feats, oil, 
+    feats = pd.merge(feats, oil, how='left', 
                      left_on = merge_date_cols, right_on = merge_date_cols)    
+    
+    
+    set_is_holiday_event(feats, holidays)
+    
+    feats['onpromotion'] = [0 if (x == None) or (np.isnan(x)) else int(x) for x in feats['onpromotion']]
+    
+    #feats['weekday'] = [get_weekday(x) for _,x in feats.iterrows()]
+    
     
     '''
     feats = data_df.loc[:,['item_nbr', 'store_nbr', 'date_month', ]]
@@ -71,8 +77,8 @@ def get_is_holiday(row, holidays):
     
 def set_is_holiday_event(feats_df, holidays):
     
-    feats_df['is_holiday'] = [False] * feats_df.shape[0]
-    feats_df['is_event'] = [False] * feats_df.shape[0]
+    feats_df['is_holiday'] = [0] * feats_df.shape[0]
+    feats_df['is_event'] = [0] * feats_df.shape[0]
     
     for _,h in holidays.iterrows():
         
@@ -86,15 +92,15 @@ def set_is_holiday_event(feats_df, holidays):
             
             
             if h['holiday_locale'] == 'National':
-                feats_df.loc[date_inds, 'is_holiday'] = True
+                feats_df.loc[date_inds, 'is_holiday'] = 1
                             
             if h['holiday_locale'] == 'Regional':
-                feats_df.loc[date_inds & feats_df['store_state'] ==\
-                             h['holiday_locale_name'], 'is_holiday'] = True  
+                feats_df.loc[(date_inds) & (feats_df['store_state'] ==\
+                             h['holiday_locale_name']), 'is_holiday'] = 1  
     
             if h['holiday_locale'] == 'Local':
-                feats_df.loc[date_inds & feats_df['store_city'] ==\
-                             h['holiday_locale_name'], 'is_holiday'] = True  
+                feats_df.loc[(date_inds) & (feats_df['store_city'] ==\
+                             h['holiday_locale_name']), 'is_holiday'] = 1  
                              
         elif h['holiday_type'] == 'Event':
             
@@ -104,13 +110,13 @@ def set_is_holiday_event(feats_df, holidays):
             
             
             if h['holiday_locale'] == 'National':
-                feats_df.loc[date_inds, 'is_holiday'] = True
+                feats_df.loc[date_inds, 'is_holiday'] = 1
                             
             if h['holiday_locale'] == 'Regional':
-                feats_df.loc[date_inds & feats_df['store_state'] ==\
-                             h['holiday_locale_name'], 'is_holiday'] = True  
+                feats_df.loc[(date_inds) & (feats_df['store_state'] ==\
+                             h['holiday_locale_name']), 'is_holiday'] = 1 
     
             if h['holiday_locale'] == 'Local':
-                feats_df.loc[date_inds & feats_df['store_city'] ==\
-                             h['holiday_locale_name'], 'is_holiday'] = True  
+                feats_df.loc[(date_inds) & (feats_df['store_city'] ==\
+                             h['holiday_locale_name']), 'is_holiday'] = 1 
                             
