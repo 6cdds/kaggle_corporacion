@@ -4,23 +4,33 @@ import datetime
 import pandas as pd
 import numpy as np
 
-def get_features(data_df, stores, items, oil, holidays):
+from sklearn.preprocessing import LabelEncoder
+
+def get_features(data_df, other_data, label_encoders):
     
-    feats = pd.merge(data_df, stores, on = 'store_nbr')
-    feats = pd.merge(feats, items, on = 'item_nbr')
+    feats = pd.merge(data_df, other_data['stores'], on = 'store_nbr')
+    feats = pd.merge(feats, other_data['items'], on = 'item_nbr')
     
     merge_date_cols = ['date_year', 'date_month', 'date_day']
     
-    feats = pd.merge(feats, oil, how='left', 
+    feats = pd.merge(feats, other_data['oil'], how='left', 
                      left_on = merge_date_cols, right_on = merge_date_cols)    
     
     
-    set_is_holiday_event(feats, holidays)
+    set_is_holiday_event(feats, other_data['holidays'])
     
     feats['onpromotion'] = [0 if (x == None) or (np.isnan(x)) else int(x) for x in feats['onpromotion']]
     
+    del feats['id']
+    
+    # Interpolate missing oil prices
+    feats = feats.interpolate()
+    feats['dcoilwtico'].iloc[0] = feats['dcoilwtico'].iloc[1]    
+    
     #feats['weekday'] = [get_weekday(x) for _,x in feats.iterrows()]
     
+    # Encode label features to integers
+    feats = label_encode_feats(feats, other_data, label_encoders)
     
     '''
     feats = data_df.loc[:,['item_nbr', 'store_nbr', 'date_month', ]]
@@ -118,5 +128,36 @@ def set_is_holiday_event(feats_df, holidays):
     
             if h['holiday_locale'] == 'Local':
                 feats_df.loc[(date_inds) & (feats_df['store_city'] ==\
-                             h['holiday_locale_name']), 'is_holiday'] = 1 
+                             h['holiday_locale_name']), 'is_holiday'] = 1
+        
+def fit_label_encoders(other_data):
+    
+    le_item_family = LabelEncoder()
+    le_item_family.fit(np.unique(list(other_data['items']['item_family'])))
+    
+    le_store_city = LabelEncoder()
+    le_store_city.fit(np.unique(list(other_data['stores']['store_city'])))
+    
+    le_store_state = LabelEncoder()
+    le_store_state.fit(np.unique(list(other_data['stores']['store_state'])))
+    
+    le_store_type = LabelEncoder()
+    le_store_type.fit(np.unique(list(other_data['stores']['store_type'])))  
+    
+    return {'item_family': le_item_family, 
+            'store_city': le_store_city,
+            'store_state': le_store_state,
+            'store_type': le_store_type}
+
+def label_encode_feats(feats, other_data, encoders):
+    
+    enc_feats = feats.copy()
+    
+    enc_feats['item_family'] = encoders['item_family'].transform(feats['item_family'])
+    enc_feats['store_city'] = encoders['store_city'].transform(feats['store_city'])
+    enc_feats['store_state'] = encoders['store_state'].transform(feats['store_state'])
+    enc_feats['store_type'] = encoders['store_type'].transform(feats['store_type'])
+
+    return enc_feats
+
                             

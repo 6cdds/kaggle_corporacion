@@ -47,6 +47,22 @@ def create_train_db(f_name, db_loc):
         print chunk_cnt
     f.close()
     connex.close()
+
+'''
+c_cnt = 0
+for chunk in pd.read_csv(f, dtype = {'item_nbr': 'category',
+             'store_nbr': 'category',
+             'unit_sales': 'float32',
+             'onpromotion': bool}, 
+usecols=['item_nbr', 'store_nbr', 'unit_sales', 'onpromotion', 'date'], chunksize = 1000000, low_memory = False, parse_dates=['date'], 
+infer_datetime_format=True ):
+    data_chunks.append(chunk)
+    print c_cnt    
+    c_cnt = c_cnt + 1
+    
+df['store_nbr'] = df['store_nbr'].astype('category')
+df['item_nbr'] = df['item_nbr'].astype('category')
+   '''
     
 def create_train_db_indices(db_loc):
     
@@ -136,3 +152,15 @@ def get_holidays(f_name):
     #del df['date']
     
     return df
+
+def get_other_data(data_dir):
+    
+    oil = get_oil(os.path.join(data_dir, 'oil.csv'))
+
+    holidays = get_holidays(os.path.join(data_dir, 'holidays_events.csv'))
+
+    stores = get_stores(os.path.join(data_dir, 'stores.csv'))
+
+    items = get_items(os.path.join(data_dir, 'items.csv'))
+    
+    return {'oil': oil, 'holidays': holidays, 'stores': stores, 'items': items}
