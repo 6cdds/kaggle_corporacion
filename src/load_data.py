@@ -4,6 +4,7 @@ import sqlite3
 import os
 import pandas as pd
 import datetime
+import pickle
 
 DB_NAME = 'kaggle_corporacion_db'
 
@@ -48,22 +49,41 @@ def create_train_db(f_name, db_loc):
     f.close()
     connex.close()
 
-'''
-c_cnt = 0
-for chunk in pd.read_csv(f, dtype = {'item_nbr': 'category',
-             'store_nbr': 'category',
-             'unit_sales': 'float32',
-             'onpromotion': bool}, 
-usecols=['item_nbr', 'store_nbr', 'unit_sales', 'onpromotion', 'date'], chunksize = 1000000, low_memory = False, parse_dates=['date'], 
-infer_datetime_format=True ):
-    data_chunks.append(chunk)
-    print c_cnt    
-    c_cnt = c_cnt + 1
+
+def load_data(f_name, save_dir, item_cats, store_cats):
+    data_chunks = []
+    f = open(f_name, 'r')
+    c_cnt = 0
+    for chunk in pd.read_csv(f, dtype = {'item_nbr': 'category',
+                 'store_nbr': 'category',
+                 'unit_sales': 'float32',
+                 'onpromotion': bool}, 
+    usecols=['item_nbr', 'store_nbr', 'unit_sales', 'onpromotion', 'date'], chunksize = 1000000, low_memory = False, parse_dates=['date'], 
+    infer_datetime_format=True ):
+        data_chunks.append(chunk)
+        print c_cnt    
+        c_cnt = c_cnt + 1
+    f.close()
     
-df['store_nbr'] = df['store_nbr'].astype('category')
-df['item_nbr'] = df['item_nbr'].astype('category')
-   '''
+    df = pd.concat(data_chunks)
     
+    df['store_nbr'] = df['store_nbr'].astype('category', categories = store_cats)
+    df['item_nbr'] = df['item_nbr'].astype('category', categories = item_cats)  
+    
+    df['onpromotion'] = df['onpromotion'].fillna(value = False)
+    
+    train_set = df.loc[df['date'] < datetime.datetime(2015, 1, 1),:]
+    f = open(os.path.join(save_dir, 'train_set.p'), 'w')
+    pickle.dump(train_set, f)
+    f.close()
+    
+    test_set = df.loc[(df['date'] >= datetime.datetime(2015, 1, 1)) &\
+                      (df['date'] < datetime.datetime(2016, 1, 1)),:]
+    f = open(os.path.join(save_dir, 'test_set.p'), 'w')
+    pickle.dump(test_set, f)
+    f.close()    
+    
+   
 def create_train_db_indices(db_loc):
     
     connex = sqlite3.connect(os.path.join(db_loc, DB_NAME + '.db'))
@@ -94,37 +114,61 @@ def parse_date(date_str):
 
 def get_stores(f_name):
     f = open(f_name, 'r')
-    df = pd.read_csv(f)
-    df.index = list(df['store_nbr'])
+    df = pd.read_csv(f, dtype = {'store_nbr': 'int32', 
+                                 'city': 'category',
+                                 'state': 'category',
+                                 'type': 'category',
+                                 'cluster': 'category'})
+    f.close()
+    #df.index = list(df['store_nbr'])
+    
+    df['store_nbr'] = df['store_nbr'].astype('category')    
+    df['city'] = df['city'].astype('category')
+    df['state'] = df['state'].astype('category')
+    df['type'] = df['type'].astype('category')  
+    df['cluster'] = df['cluster'].astype('category')
+    
     df.columns = ['store_nbr', 'store_city', 'store_state', 
                   'store_type', 'store_cluster']
     return df
     
 def get_items(f_name):
     f = open(f_name, 'r')
-    df = pd.read_csv(f)
-    df.index = list(df['item_nbr'])
+    df = pd.read_csv(f, dtype = {'item_nbr': 'int32', 
+                                 'family': 'category',
+                                 'class': 'category',
+                                 'perishable': 'float32'})
+    
+    df['item_nbr'] = df['item_nbr'].astype('category')
+    df['family'] = df['family'].astype('category')
+    df['class'] = df['class'].astype('category')  
+        
+    #df.index = list(df['item_nbr'])
     df.columns = ['item_nbr', 'item_family', 'item_class', 'item_perishable']
     return df
 
 def get_oil(f_name):
     f = open(f_name, 'r')
-    df = pd.read_csv(f) 
+    df = pd.read_csv(f, parse_dates=['date'], infer_datetime_format=True ) 
 
-    date_year = []
-    date_month = []
-    date_day = []    
-    for x in df['date']:
-        dt = datetime.datetime.strptime(x, '%Y-%m-%d')
-        date_year.append(dt.year)
-        date_month.append(dt.month)
-        date_day.append(dt.day)
-
-    df['date_year'] = date_year
-    df['date_month'] = date_month
-    df['date_day'] = date_day
+    df['dcoilwtico'] = pd.to_numeric(df['dcoilwtico'], 
+          downcast = 'float')
     
-    del df['date']
+    f.close()
+    #date_year = []
+    #date_month = []
+    #date_day = []    
+    #for x in df['date']:
+    #    dt = datetime.datetime.strptime(x, '%Y-%m-%d')
+    #    date_year.append(dt.year)
+    #    date_month.append(dt.month)
+    #    date_day.append(dt.day)
+
+    #df['date_year'] = df['date'].dt.year
+    #df['date_month'] = df['date'].dt.month
+    #df['date_day'] = df['date'].dt.day
+    
+    #del df['date']
     
     return df
 

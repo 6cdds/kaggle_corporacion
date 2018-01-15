@@ -11,15 +11,17 @@ def get_features(data_df, other_data, label_encoders):
     feats = pd.merge(data_df, other_data['stores'], on = 'store_nbr')
     feats = pd.merge(feats, other_data['items'], on = 'item_nbr')
     
-    merge_date_cols = ['date_year', 'date_month', 'date_day']
+    feats['date_year'] = data_df['date'].dt.year
+    feats['date_month'] = data_df['date'].dt.month
+    feats['date_day'] = data_df['date'].dt.day
+    feats['weekday'] = data_df['date'].dt.dayofweek
     
     feats = pd.merge(feats, other_data['oil'], how='left', 
-                     left_on = merge_date_cols, right_on = merge_date_cols)    
-    
-    
+                     left_on = ['date'], right_on = ['date'])    
+        
     set_is_holiday_event(feats, other_data['holidays'])
     
-    feats['onpromotion'] = [0 if (x == None) or (np.isnan(x)) else int(x) for x in feats['onpromotion']]
+    feats['onpromotion'] = data_df['onpromotion'].astype('uint8')
     
     del feats['id']
     
@@ -27,30 +29,10 @@ def get_features(data_df, other_data, label_encoders):
     feats = feats.interpolate()
     feats['dcoilwtico'].iloc[0] = feats['dcoilwtico'].iloc[1]    
     
-    #feats['weekday'] = [get_weekday(x) for _,x in feats.iterrows()]
-    
+
     # Encode label features to integers
     feats = label_encode_feats(feats, other_data, label_encoders)
     
-    '''
-    feats = data_df.loc[:,['item_nbr', 'store_nbr', 'date_month', ]]
-
-    other_feats = []
-    for ind,row in data_df.iterrows():
-        print ind
-        feat_samp = {}
-        feat_samp.update({'weekday': get_weekday(row),
-                          'oil_price': get_oil_price(row, oil),
-                          'is_holiday': get_is_holiday(row, holidays)})
-    
-        feat_samp.update(get_store_data(row, stores))
-        feat_samp.update(get_item_data(row, items))
-        other_feats.append(feat_samp)
-    
-    other_feats_df = pd.DataFrame(other_feats, index = feats.index)
-    
-    feats = pd.concat([feats, other_feats_df])
-    '''
     return feats
     
 
