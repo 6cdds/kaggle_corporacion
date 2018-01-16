@@ -50,12 +50,12 @@ def create_train_db(f_name, db_loc):
     connex.close()
 
 
-def load_data(f_name, save_dir, item_cats, store_cats):
+def load_data(f_name, save_dir, other_data):
     data_chunks = []
     f = open(f_name, 'r')
     c_cnt = 0
-    for chunk in pd.read_csv(f, dtype = {'item_nbr': 'category',
-                 'store_nbr': 'category',
+    for chunk in pd.read_csv(f, dtype = {'item_nbr': str,
+                 'store_nbr': str,
                  'unit_sales': 'float32',
                  'onpromotion': bool}, 
     usecols=['item_nbr', 'store_nbr', 'unit_sales', 'onpromotion', 'date'], chunksize = 1000000, low_memory = False, parse_dates=['date'], 
@@ -67,10 +67,14 @@ def load_data(f_name, save_dir, item_cats, store_cats):
     
     df = pd.concat(data_chunks)
     
-    df['store_nbr'] = df['store_nbr'].astype('category', categories = store_cats)
-    df['item_nbr'] = df['item_nbr'].astype('category', categories = item_cats)  
+    df['store_nbr'] = df['store_nbr'].astype(int).astype('category', categories = other_data['stores']['store_nbr'].cat.categories)
+    df['item_nbr'] = df['item_nbr'].astype(int).astype('category', categories = other_data['items']['item_nbr'].cat.categories)  
     
     df['onpromotion'] = df['onpromotion'].fillna(value = False)
+    
+    return df
+
+def split_data(df, save_dir):
     
     train_set = df.loc[df['date'] < datetime.datetime(2015, 1, 1),:]
     f = open(os.path.join(save_dir, 'train_set.p'), 'w')
@@ -81,8 +85,7 @@ def load_data(f_name, save_dir, item_cats, store_cats):
                       (df['date'] < datetime.datetime(2016, 1, 1)),:]
     f = open(os.path.join(save_dir, 'test_set.p'), 'w')
     pickle.dump(test_set, f)
-    f.close()    
-    
+    f.close()        
    
 def create_train_db_indices(db_loc):
     
@@ -174,26 +177,23 @@ def get_oil(f_name):
 
 def get_holidays(f_name):
     f = open(f_name, 'r')
-    df = pd.read_csv(f) 
+    
+    df = pd.read_csv(f, dtype = {'type': str,
+                             'locale': str,
+                             'locale_name': str,
+                             'description': str,
+                             'transferred': bool}, 
+        parse_dates=['date'],
+        infer_datetime_format = True)
 
-    date_year = []
-    date_month = []
-    date_day = []    
-    for x in df['date']:
-        dt = datetime.datetime.strptime(x, '%Y-%m-%d')
-        date_year.append(dt.year)
-        date_month.append(dt.month)
-        date_day.append(dt.day)
-
-    df['date_year'] = date_year
-    df['date_month'] = date_month
-    df['date_day'] = date_day
+    df['type'] = df['type'].astype('category')    
+    df['locale'] = df['locale'].astype('category')
+    df['locale_name'] = df['locale_name'].astype('category')
+    
     
     df.columns = ['date', 'holiday_type', 'holiday_locale', 
                   'holiday_locale_name', 'holiday_description',
-                  'holiday_transferred', 'date_year', u'date_month', u'date_day']
-    
-    #del df['date']
+                  'holiday_transferred']
     
     return df
 
