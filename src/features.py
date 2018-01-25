@@ -7,7 +7,7 @@ import numpy as np
 from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import OneHotEncoder
 
-def get_features(data_df, other_data, label_encoders):
+def get_features(data_df, other_data):
     
     feats = pd.merge(data_df, other_data['stores'], how = 'left',
                      left_on = 'store_nbr', right_on = 'store_nbr')
@@ -29,11 +29,7 @@ def get_features(data_df, other_data, label_encoders):
     
     # Interpolate missing oil prices
     feats['dcoilwtico'] = feats['dcoilwtico'].fillna(method = 'ffill')
-    feats['dcoilwtico'] = feats['dcoilwtico'].fillna(method = 'bfill')
-    
-
-    # Encode label features to integers
-    #feats = label_encode_feats(feats, other_data, label_encoders)
+    feats['dcoilwtico'] = feats['dcoilwtico'].fillna(method = 'bfill')   
     
     return feats
     
